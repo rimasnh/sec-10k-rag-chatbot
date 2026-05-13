@@ -1,0 +1,17 @@
+.DS_Store
+.idea/
+.vscode/
+*.iml
+
+backend/target/
+backend/logs/
+frontend/node_modules/
+frontend/dist/
+
+.env
+data/*.crc
+logs/
+output/
+qdrant_storage/
+tmp/
+*.log

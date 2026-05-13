@@ -1,0 +1,109 @@
+{
+  "type": "record",
+  "name": "FilingRecord",
+  "namespace": "com.sec.rag",
+  "fields": [
+    { "name": "cik", "type": ["null", "string"], "default": null },
+    { "name": "sic", "type": ["null", "string"], "default": null },
+    { "name": "company", "type": ["null", "string"], "default": null },
+
+    {
+      "name": "date",
+      "type": ["null", { "type": "long", "logicalType": "timestamp-micros" }],
+      "default": null
+    },
+
+    { "name": "item_1", "type": ["null", "string"], "default": null },
+    { "name": "item_1A", "type": ["null", "string"], "default": null },
+    { "name": "item_1B", "type": ["null", "string"], "default": null },
+    { "name": "item_2", "type": ["null", "string"], "default": null },
+    { "name": "item_3", "type": ["null", "string"], "default": null },
+    { "name": "item_4", "type": ["null", "string"], "default": null },
+    { "name": "item_5", "type": ["null", "string"], "default": null },
+    { "name": "item_6", "type": ["null", "string"], "default": null },
+    { "name": "item_7", "type": ["null", "string"], "default": null },
+    { "name": "item_7A", "type": ["null", "string"], "default": null },
+    { "name": "item_8", "type": ["null", "string"], "default": null },
+    { "name": "item_9", "type": ["null", "string"], "default": null },
+    { "name": "item_9A", "type": ["null", "string"], "default": null },
+    { "name": "item_9B", "type": ["null", "string"], "default": null },
+    { "name": "item_10", "type": ["null", "string"], "default": null },
+    { "name": "item_11", "type": ["null", "string"], "default": null },
+    { "name": "item_12", "type": ["null", "string"], "default": null },
+    { "name": "item_13", "type": ["null", "string"], "default": null },
+    { "name": "item_14", "type": ["null", "string"], "default": null },
+    { "name": "item_15", "type": ["null", "string"], "default": null },
+
+    { "name": "ret", "type": ["null", "double"], "default": null },
+    { "name": "mkt_cap", "type": ["null", "double"], "default": null },
+
+    {
+      "name": "_1_day_return",
+      "type": ["null", "double"],
+      "default": null,
+      "aliases": ["1_day_return"]
+    },
+    {
+      "name": "_3_day_return",
+      "type": ["null", "double"],
+      "default": null,
+      "aliases": ["3_day_return"]
+    },
+    {
+      "name": "_5_day_return",
+      "type": ["null", "double"],
+      "default": null,
+      "aliases": ["5_day_return"]
+    },
+    {
+      "name": "_10_day_return",
+      "type": ["null", "double"],
+      "default": null,
+      "aliases": ["10_day_return"]
+    },
+    {
+      "name": "_20_day_return",
+      "type": ["null", "double"],
+      "default": null,
+      "aliases": ["20_day_return"]
+    },
+    {
+      "name": "_40_day_return",
+      "type": ["null", "double"],
+      "default": null,
+      "aliases": ["40_day_return"]
+    },
+    {
+      "name": "_60_day_return",
+      "type": ["null", "double"],
+      "default": null,
+      "aliases": ["60_day_return"]
+    },
+    {
+      "name": "_80_day_return",
+      "type": ["null", "double"],
+      "default": null,
+      "aliases": ["80_day_return"]
+    },
+    {
+      "name": "_100_day_return",
+      "type": ["null", "double"],
+      "default": null,
+      "aliases": ["100_day_return"]
+    },
+    {
+      "name": "_150_day_return",
+      "type": ["null", "double"],
+      "default": null,
+      "aliases": ["150_day_return"]
+    },
+    {
+      "name": "_252_day_return",
+      "type": ["null", "double"],
+      "default": null,
+      "aliases": ["252_day_return"]
+    },
+
+    { "name": "__index_level_0__", "type": ["null", "long"], "default": null }
+  ]
+}
