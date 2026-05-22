@@ -21,6 +21,7 @@ services:
       OLLAMA_BASE_URL: http://ollama:11434
       QDRANT_URL: http://qdrant:6333
       DATA_DIR: /app/data
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:4173,http://${VM_IP:-127.0.0.1}:5173}
     ports:
       - "8080:8080"
     volumes:
@@ -33,7 +34,7 @@ services:
     build:
       context: ./frontend
     environment:
-      VITE_API_BASE_URL: http://localhost:8080
+      VITE_API_BASE_URL: /api
     ports:
       - "5173:80"
     depends_on:
