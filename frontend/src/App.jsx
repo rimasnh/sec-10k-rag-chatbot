@@ -15,6 +15,7 @@ const initialMessages = [
 export default function App() {
   const [messages, setMessages] = useState(initialMessages);
   const [sources, setSources] = useState([]);
+  const [telemetry, setTelemetry] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (payload) => {
@@ -29,6 +30,7 @@ export default function App() {
         { role: "assistant", content: response.answer }
       ]);
       setSources(response.sources || []);
+      setTelemetry(response.telemetry || null);
     } catch (error) {
       setMessages((current) => [
         ...current,
@@ -40,6 +42,7 @@ export default function App() {
         }
       ]);
       setSources([]);
+      setTelemetry(null);
     } finally {
       setLoading(false);
     }
@@ -62,7 +65,7 @@ export default function App() {
           <MessageList messages={messages} loading={loading} />
         </div>
         <aside className="panel sources-panel">
-          <SourcePanel sources={sources} />
+          <SourcePanel sources={sources} telemetry={telemetry} />
         </aside>
       </main>
     </div>

@@ -250,12 +250,41 @@ button:disabled {
   gap: 14px;
 }
 
+.telemetry-card,
 .source-card,
 .empty-state {
   border-radius: 22px;
   padding: 18px;
   background: rgba(246, 241, 232, 0.85);
   border: 1px solid rgba(141, 90, 25, 0.1);
+}
+
+.telemetry-card {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.telemetry-metric {
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.66);
+  border: 1px solid rgba(17, 52, 63, 0.08);
+}
+
+.telemetry-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #5d6d79;
+}
+
+.telemetry-metric strong {
+  font-size: 1.15rem;
+  color: #173241;
 }
 
 .source-meta {
@@ -335,5 +364,9 @@ button:disabled {
 
   .message {
     max-width: 100%;
+  }
+
+  .telemetry-card {
+    grid-template-columns: 1fr;
   }
 }

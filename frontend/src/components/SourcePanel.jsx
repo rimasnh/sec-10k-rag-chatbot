@@ -46,7 +46,7 @@ function SourceCard({ source, index }) {
   );
 }
 
-export default function SourcePanel({ sources }) {
+export default function SourcePanel({ sources, telemetry }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -82,6 +82,23 @@ export default function SourcePanel({ sources }) {
           {copied ? "Copied" : "Copy"}
         </button>
       </div>
+
+      {telemetry ? (
+        <section className="telemetry-card" aria-label="Request telemetry">
+          <div className="telemetry-metric">
+            <span className="telemetry-label">Request latency</span>
+            <strong>{telemetry.requestLatencyMs} ms</strong>
+          </div>
+          <div className="telemetry-metric">
+            <span className="telemetry-label">Retrieval latency</span>
+            <strong>{telemetry.retrievalLatencyMs} ms</strong>
+          </div>
+          <div className="telemetry-metric">
+            <span className="telemetry-label">LLM latency</span>
+            <strong>{telemetry.llmLatencyMs} ms</strong>
+          </div>
+        </section>
+      ) : null}
 
       {sources.length === 0 ? (
         <div className="empty-state">

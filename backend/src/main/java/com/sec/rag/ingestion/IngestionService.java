@@ -2,6 +2,7 @@ package com.sec.rag.ingestion;
 
 import com.sec.rag.config.AppProperties;
 import com.sec.rag.dto.IngestionResponse;
+import com.sec.rag.dto.IngestionTelemetry;
 import com.sec.rag.rag.QdrantService;
 import jakarta.annotation.PostConstruct;
 import java.io.IOException;
@@ -48,9 +49,11 @@ public class IngestionService {
         Path dataDir = Path.of(properties.getData().getDir());
         log.info("Starting ingestion dataDir='{}' autoIngest={}", dataDir.toAbsolutePath(), properties.getData().isAutoIngest());
         if (!Files.isDirectory(dataDir)) {
+            long ingestionDurationMs = elapsedMillis(startNanos);
             log.warn("Ingestion aborted because data directory does not exist: {}", dataDir.toAbsolutePath());
             return new IngestionResponse(false, 0, 0,
-                    "Data directory not found: " + dataDir.toAbsolutePath());
+                    "Data directory not found: " + dataDir.toAbsolutePath(),
+                    new IngestionTelemetry(ingestionDurationMs));
         }
 
         try {
@@ -83,15 +86,19 @@ public class IngestionService {
                         elapsedMillis(fileStartNanos));
             }
 
-            log.info("Ingestion completed filesProcessed={} recordsIndexed={} durationMs={}",
+            long ingestionDurationMs = elapsedMillis(startNanos);
+            log.info("Ingestion completed filesProcessed={} recordsIndexed={} ingestionDurationMs={}",
                     parquetFiles.size(),
                     indexedChunks,
-                    elapsedMillis(startNanos));
+                    ingestionDurationMs);
             return new IngestionResponse(true, parquetFiles.size(), indexedChunks,
-                    "Ingestion completed successfully");
+                    "Ingestion completed successfully",
+                    new IngestionTelemetry(ingestionDurationMs));
         } catch (IOException exception) {
+            long ingestionDurationMs = elapsedMillis(startNanos);
             log.error("Failed to ingest parquet files", exception);
-            return new IngestionResponse(false, 0, 0, exception.getMessage());
+            return new IngestionResponse(false, 0, 0, exception.getMessage(),
+                    new IngestionTelemetry(ingestionDurationMs));
         }
     }
 

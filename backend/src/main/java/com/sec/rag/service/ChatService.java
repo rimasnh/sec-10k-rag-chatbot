@@ -3,6 +3,7 @@ package com.sec.rag.service;
 import com.sec.rag.config.AppProperties;
 import com.sec.rag.dto.ChatRequest;
 import com.sec.rag.dto.ChatResponse;
+import com.sec.rag.dto.ChatTelemetry;
 import com.sec.rag.dto.SourceSnippet;
 import com.sec.rag.rag.QdrantPoint;
 import com.sec.rag.rag.QdrantService;
@@ -50,12 +51,16 @@ public class ChatService {
         QuestionMode questionMode = detectQuestionMode(request.question());
         log.info("Starting chat pipeline company='{}' year={} topK={} questionLength={}",
                 request.company(), request.year(), topK, request.question().length());
+        long retrievalStartNanos = System.nanoTime();
         List<QdrantPoint> points = qdrantService.search(request.question(), request.company(), request.year(), topK);
+        long retrievalLatencyMs = elapsedMillis(retrievalStartNanos);
 
         if (points.isEmpty()) {
-            log.warn("No vector matches found company='{}' year={} durationMs={}",
-                    request.company(), request.year(), elapsedMillis(startNanos));
-            return new ChatResponse(EMPTY_RESPONSE, List.of());
+            long requestLatencyMs = elapsedMillis(startNanos);
+            log.warn("No vector matches found company='{}' year={} requestLatencyMs={} retrievalLatencyMs={}",
+                    request.company(), request.year(), requestLatencyMs, retrievalLatencyMs);
+            return new ChatResponse(EMPTY_RESPONSE, List.of(),
+                    new ChatTelemetry(requestLatencyMs, retrievalLatencyMs, 0));
         }
 
         List<QdrantPoint> rerankedPoints = rerankPoints(request.question(), points);
@@ -98,20 +103,29 @@ public class ChatService {
             log.info("LLM prompt body:\n{}", llmPrompt);
         }
 
+        long llmStartNanos = System.nanoTime();
         String answer = assistant.chat(llmPrompt);
-        log.info("LLM answer generated company='{}' year={} retrievedChunks={} contextChars={} answerChars={} durationMs={}",
+        long llmLatencyMs = elapsedMillis(llmStartNanos);
+        long requestLatencyMs = elapsedMillis(startNanos);
+        log.info("LLM answer generated company='{}' year={} retrievedChunks={} contextChars={} answerChars={} requestLatencyMs={} retrievalLatencyMs={} llmLatencyMs={}",
                 request.company(),
                 request.year(),
                 promptPoints.size(),
                 context.length(),
                 answer == null ? 0 : answer.length(),
-                elapsedMillis(startNanos));
+                requestLatencyMs,
+                retrievalLatencyMs,
+                llmLatencyMs);
 
         List<SourceSnippet> snippets = rerankedPoints.stream()
                 .map(this::toSourceSnippet)
                 .toList();
 
-        return new ChatResponse(answer == null || answer.isBlank() ? EMPTY_RESPONSE : answer, snippets);
+        return new ChatResponse(
+                answer == null || answer.isBlank() ? EMPTY_RESPONSE : answer,
+                snippets,
+                new ChatTelemetry(requestLatencyMs, retrievalLatencyMs, llmLatencyMs)
+        );
     }
 
     private String formatContextBlock(QdrantPoint point) {

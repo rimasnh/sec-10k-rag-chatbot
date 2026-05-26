@@ -4,6 +4,7 @@ import java.util.List;
 
 public record ChatResponse(
         String answer,
-        List<SourceSnippet> sources
+        List<SourceSnippet> sources,
+        ChatTelemetry telemetry
 ) {
 }
