@@ -11,14 +11,16 @@ Run the FilingLens UI locally and ask questions about SEC 10-K filings from:
 - Maven 3.9+
 - Node.js 20+
 - Docker and Docker Compose
-- The parquet data file(s) in [`data/`](/Users/rimasinha/Downloads/project/FilingLens/data)
+- The parquet data file(s) in [`data/`](/project/FilingLens/data)
+- A root [`.env`](./.env) file for compose interpolation. Copy [`.env.example`](./.env.example) first and then fill in any required values.
 
 ## Run Locally
 
-1. Start Qdrant and Ollama:
+1. Start Qdrant,Ollama,Frontend and Backend:
 
 ```bash
-docker compose up -d qdrant ollama
+open /Applications/Docker.app
+docker compose up -d --build
 ```
 
 2. Pull the required Ollama models if they are not already available:
@@ -93,6 +95,7 @@ export VM_IP=YOUR_VM_IP
 4. Build and start the app:
 
 ```bash
+sudo systemctl start docker
 docker compose up -d --build
 ```
 

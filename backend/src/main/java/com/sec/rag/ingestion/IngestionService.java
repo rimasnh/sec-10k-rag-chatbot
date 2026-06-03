@@ -22,15 +22,18 @@ public class IngestionService {
     private static final Logger log = LoggerFactory.getLogger(IngestionService.class);
 
     private final AppProperties properties;
+    private final BlobParquetStorageService blobParquetStorageService;
     private final ParquetFilingReader parquetFilingReader;
     private final TextChunker textChunker;
     private final QdrantService qdrantService;
 
     public IngestionService(AppProperties properties,
+                            BlobParquetStorageService blobParquetStorageService,
                             ParquetFilingReader parquetFilingReader,
                             TextChunker textChunker,
                             QdrantService qdrantService) {
         this.properties = properties;
+        this.blobParquetStorageService = blobParquetStorageService;
         this.parquetFilingReader = parquetFilingReader;
         this.textChunker = textChunker;
         this.qdrantService = qdrantService;
@@ -39,33 +42,24 @@ public class IngestionService {
     @PostConstruct
     public void autoIngestIfEnabled() {
         if (properties.getData().isAutoIngest()) {
-            log.info("AUTO_INGEST enabled, starting ingestion");
-            ingestAll();
+            IngestionSource source = IngestionSource.from(properties.getData().getSource());
+            log.info("AUTO_INGEST enabled, starting ingestion source={}", source);
+            ingestAll(source);
         }
     }
 
     public IngestionResponse ingestAll() {
+        return ingestAll(IngestionSource.LOCAL);
+    }
+
+    public IngestionResponse ingestAll(IngestionSource source) {
         long startNanos = System.nanoTime();
-        Path dataDir = Path.of(properties.getData().getDir());
-        log.info("Starting ingestion dataDir='{}' autoIngest={}", dataDir.toAbsolutePath(), properties.getData().isAutoIngest());
-        if (!Files.isDirectory(dataDir)) {
-            long ingestionDurationMs = elapsedMillis(startNanos);
-            log.warn("Ingestion aborted because data directory does not exist: {}", dataDir.toAbsolutePath());
-            return new IngestionResponse(false, 0, 0,
-                    "Data directory not found: " + dataDir.toAbsolutePath(),
-                    new IngestionTelemetry(ingestionDurationMs));
-        }
-
+        log.info("Starting ingestion source={} autoIngest={}", source, properties.getData().isAutoIngest());
+        List<Path> tempFiles = new ArrayList<>();
         try {
-            List<Path> parquetFiles;
-            try (Stream<Path> stream = Files.list(dataDir)) {
-                parquetFiles = stream
-                        .filter(path -> path.getFileName().toString().endsWith(".parquet"))
-                        .sorted(Comparator.comparing(Path::toString))
-                        .toList();
-            }
+            List<Path> parquetFiles = resolveParquetFiles(source, tempFiles);
 
-            log.info("Discovered {} parquet files for ingestion", parquetFiles.size());
+            log.info("Discovered {} parquet files for ingestion source={}", parquetFiles.size(), source);
 
             qdrantService.ensureCollectionExists();
 
@@ -99,6 +93,38 @@ public class IngestionService {
             log.error("Failed to ingest parquet files", exception);
             return new IngestionResponse(false, 0, 0, exception.getMessage(),
                     new IngestionTelemetry(ingestionDurationMs));
+        } finally {
+            cleanupTempFiles(tempFiles);
+        }
+    }
+
+    private List<Path> resolveParquetFiles(IngestionSource source, List<Path> tempFiles) throws IOException {
+        if (source == IngestionSource.BLOB) {
+            List<Path> blobFiles = blobParquetStorageService.downloadParquetFiles();
+            tempFiles.addAll(blobFiles);
+            return blobFiles;
+        }
+
+        Path dataDir = Path.of(properties.getData().getDir());
+        if (!Files.isDirectory(dataDir)) {
+            throw new IOException("Data directory not found: " + dataDir.toAbsolutePath());
+        }
+
+        try (Stream<Path> stream = Files.list(dataDir)) {
+            return stream
+                    .filter(path -> path.getFileName().toString().endsWith(".parquet"))
+                    .sorted(Comparator.comparing(Path::toString))
+                    .toList();
+        }
+    }
+
+    private void cleanupTempFiles(List<Path> tempFiles) {
+        for (Path tempFile : tempFiles) {
+            try {
+                Files.deleteIfExists(tempFile);
+            } catch (IOException exception) {
+                log.warn("Failed to delete temp file {}", tempFile, exception);
+            }
         }
     }
 
