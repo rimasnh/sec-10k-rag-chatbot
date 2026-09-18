@@ -11,7 +11,7 @@ Run the FilingLens UI locally and ask questions about SEC 10-K filings from:
 - Maven 3.9+
 - Node.js 20+
 - Docker and Docker Compose
-- The parquet data file(s) in [`data/`](/Users/rimasinha/Downloads/project/FilingLens/data)
+- The parquet data file(s) in [`data/`](./data)
 
 ## Run The App
 
@@ -75,5 +75,5 @@ http://localhost:5173
 
 - If the UI does not load, make sure the frontend is running on `http://localhost:5173`.
 - If chat requests fail, make sure the backend is running on `http://localhost:8080`.
-- If answers are empty, run the ingestion step again and confirm the parquet file exists in [`data/`](/FilingLens/data).
+- If answers are empty, run the ingestion step again and confirm the parquet file exists in [`data/`](./data).
 - If model calls fail, make sure Ollama is running and both models were pulled successfully.
