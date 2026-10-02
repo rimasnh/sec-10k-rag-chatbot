@@ -13,6 +13,7 @@ public class AppProperties {
     private final Ollama ollama = new Ollama();
     private final Qdrant qdrant = new Qdrant();
     private final Data data = new Data();
+    private final Blob blob = new Blob();
     private final Rag rag = new Rag();
     private final Cors cors = new Cors();
     private final Debug debug = new Debug();
@@ -32,6 +33,10 @@ public class AppProperties {
 
     public Rag getRag() {
         return rag;
+    }
+
+    public Blob getBlob() {
+        return blob;
     }
 
     public Cors getCors() {
@@ -126,6 +131,7 @@ public class AppProperties {
         @NotBlank
         private String dir;
         private boolean autoIngest;
+        private String source = "local";
 
         public String getDir() {
             return dir;
@@ -141,6 +147,35 @@ public class AppProperties {
 
         public void setAutoIngest(boolean autoIngest) {
             this.autoIngest = autoIngest;
+        }
+
+        public String getSource() {
+            return source;
+        }
+
+        public void setSource(String source) {
+            this.source = source;
+        }
+    }
+
+    public static class Blob {
+        private String connectionString;
+        private String containerName = "10kfilestorage";
+
+        public String getConnectionString() {
+            return connectionString;
+        }
+
+        public void setConnectionString(String connectionString) {
+            this.connectionString = connectionString;
+        }
+
+        public String getContainerName() {
+            return containerName;
+        }
+
+        public void setContainerName(String containerName) {
+            this.containerName = containerName;
         }
     }
 

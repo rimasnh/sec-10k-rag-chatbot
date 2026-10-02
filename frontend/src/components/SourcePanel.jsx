@@ -49,6 +49,30 @@ function SourceCard({ source, index }) {
 export default function SourcePanel({ sources, telemetry }) {
   const [copied, setCopied] = useState(false);
 
+  const copyToClipboard = async (text) => {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "true");
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    textarea.style.pointerEvents = "none";
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+
+    const copiedSuccessfully = document.execCommand("copy");
+    document.body.removeChild(textarea);
+
+    if (!copiedSuccessfully) {
+      throw new Error("Clipboard copy failed");
+    }
+  };
+
   const handleCopy = async () => {
     if (sources.length === 0) {
       return;
@@ -61,9 +85,13 @@ export default function SourcePanel({ sources, telemetry }) {
       source.sourceFile || ""
     ].filter(Boolean).join("\n")).join("\n\n---\n\n");
 
-    await navigator.clipboard.writeText(payload);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1500);
+    try {
+      await copyToClipboard(payload);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch (error) {
+      console.error("Failed to copy sources", error);
+    }
   };
 
   return (
