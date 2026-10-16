@@ -19,6 +19,7 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 public class QdrantService {
 
     private static final Logger log = LoggerFactory.getLogger(QdrantService.class);
+    private static final int UPSERT_BATCH_SIZE = 100;
 
     private final AppProperties properties;
     private final WebClient qdrantWebClient;
@@ -49,12 +50,16 @@ public class QdrantService {
             log.debug("Skipping Qdrant upsert because no chunks were provided");
             return;
         }
-        List<ChunkedSection> testChunks = chunks.stream().limit(5) // or 10 or 20
-                .toList();
+        // Local testing only: uncomment to embed and store just the first 5 chunks
+        // per upsert call. Keep commented out when ingesting the full dataset.
+        // chunks = chunks.stream().limit(5).toList();
 
         long startNanos = System.nanoTime();
-        List<Map<String, Object>> points = new ArrayList<>();
-        for (ChunkedSection chunk : testChunks) {
+        int uploaded = 0;
+        List<Map<String, Object>> points = new ArrayList<>(UPSERT_BATCH_SIZE);
+        log.info("Starting embedding and upload chunks={} batchSize={} collection='{}'", chunks.size(),
+                UPSERT_BATCH_SIZE, properties.getQdrant().getCollection());
+        for (ChunkedSection chunk : chunks) {
             Embedding embedding = embeddingModel.embed(chunk.text()).content();
             Map<String, Object> payload = new HashMap<>();
             payload.put("company", chunk.company());
@@ -65,14 +70,28 @@ public class QdrantService {
             payload.put("text", chunk.text());
 
             points.add(Map.of("id", chunk.id(), "vector", embedding.vectorAsList(), "payload", payload));
+            if (points.size() == UPSERT_BATCH_SIZE) {
+                uploadBatch(points);
+                uploaded += points.size();
+                points.clear();
+                log.info("Ingestion progress uploaded={}/{} collection='{}' durationMs={}", uploaded, chunks.size(),
+                        properties.getQdrant().getCollection(), elapsedMillis(startNanos));
+            }
         }
-        log.info("Points size: {}", points.size());
-        // log.info("Sample point: {}", points.get(0));
+        if (!points.isEmpty()) {
+            uploadBatch(points);
+            uploaded += points.size();
+            log.info("Ingestion progress uploaded={}/{} collection='{}' durationMs={}", uploaded, chunks.size(),
+                    properties.getQdrant().getCollection(), elapsedMillis(startNanos));
+        }
+        log.info("Upserted {} vectors into collection='{}' durationMs={}", uploaded,
+                properties.getQdrant().getCollection(), elapsedMillis(startNanos));
+    }
+
+    private void uploadBatch(List<Map<String, Object>> points) {
         qdrantWebClient.put().uri("/collections/{collection}/points?wait=true", properties.getQdrant().getCollection())
                 .bodyValue(Map.of("points", points)).retrieve().toBodilessEntity().timeout(Duration.ofSeconds(30))
                 .block();
-        log.info("Upserted {} vectors into collection='{}' durationMs={}", chunks.size(),
-                properties.getQdrant().getCollection(), elapsedMillis(startNanos));
     }
 
     public List<QdrantPoint> search(String question, String company, Integer year, int limit) {
