@@ -7,7 +7,7 @@ Run the FilingLens UI locally and ask questions about SEC 10-K filings from:
 
 ## What You Need
 
-- Java 21
+- Java 25 (latest LTS)
 - Maven 3.9+
 - Node.js 20+
 - Docker and Docker Compose
@@ -63,6 +63,7 @@ http://localhost:5173
 
 ```bash
 rsync -avz -e "ssh -i ~/.ssh/azure_vm_key.pem" \
+  --exclude '.env' \
   --exclude '.git' \
   --exclude '.DS_Store' \
   --exclude '.idea' \

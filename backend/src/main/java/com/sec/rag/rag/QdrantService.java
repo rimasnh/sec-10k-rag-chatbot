@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.time.Duration;
@@ -20,6 +21,8 @@ public class QdrantService {
 
     private static final Logger log = LoggerFactory.getLogger(QdrantService.class);
     private static final int UPSERT_BATCH_SIZE = 100;
+    private static final Pattern ITEM_7A = Pattern.compile("\\b7\\s*a\\b", Pattern.CASE_INSENSITIVE);
+    private static final Pattern ITEM_7 = Pattern.compile("\\b(?:items?|sections?)\\s*7\\b(?!\\s*a\\b)", Pattern.CASE_INSENSITIVE);
 
     private final AppProperties properties;
     private final WebClient qdrantWebClient;
@@ -111,6 +114,14 @@ public class QdrantService {
         }
         if (year != null) {
             must.add(matchFilter("year", year));
+        }
+        // Section names are metadata, so embedding similarity alone cannot enforce them.
+        boolean mentions7A = question != null && ITEM_7A.matcher(question).find();
+        boolean mentions7 = question != null && ITEM_7.matcher(question).find();
+        if (mentions7A && !mentions7) {
+            must.add(matchFilter("section", "7A"));
+        } else if (mentions7 && !mentions7A) {
+            must.add(matchFilter("section", "7"));
         }
         if (!must.isEmpty()) {
             body.put("filter", Map.of("must", must));

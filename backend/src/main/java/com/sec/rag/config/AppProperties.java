@@ -59,7 +59,27 @@ public class AppProperties {
         @NotBlank
         private String embeddingModel;
         @Min(30)
-        private int timeoutSeconds = 120;
+        private int timeoutSeconds = 300;
+        @Min(512)
+        private int contextTokens = 8192;
+        @Min(1)
+        private int maxOutputTokens = 256;
+
+        public int getContextTokens() {
+            return contextTokens;
+        }
+
+        public void setContextTokens(int contextTokens) {
+            this.contextTokens = contextTokens;
+        }
+
+        public int getMaxOutputTokens() {
+            return maxOutputTokens;
+        }
+
+        public void setMaxOutputTokens(int maxOutputTokens) {
+            this.maxOutputTokens = maxOutputTokens;
+        }
 
         public String getBaseUrl() {
             return baseUrl;

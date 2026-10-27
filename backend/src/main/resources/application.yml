@@ -10,7 +10,9 @@ app:
     base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
     chat-model: ${OLLAMA_CHAT_MODEL:llama3.2:1b}
     embedding-model: ${OLLAMA_EMBEDDING_MODEL:nomic-embed-text}
-    timeout-seconds: 120
+    timeout-seconds: ${OLLAMA_TIMEOUT_SECONDS:300}
+    context-tokens: ${OLLAMA_CONTEXT_TOKENS:8192}
+    max-output-tokens: ${OLLAMA_MAX_OUTPUT_TOKENS:256}
   qdrant:
     url: ${QDRANT_URL:http://localhost:6333}
     collection: ${QDRANT_COLLECTION:sec_10k_sections}

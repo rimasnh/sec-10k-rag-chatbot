@@ -25,13 +25,14 @@ import org.springframework.stereotype.Service;
 public class ChatService {
 
     private static final Logger log = LoggerFactory.getLogger(ChatService.class);
+    private static final int MIN_EXTRACTION_CANDIDATES = 20;
 
     private static final String EMPTY_RESPONSE = "No relevant information found for the specified company and year.";
     private static final Pattern SENTENCE_SPLIT_PATTERN = Pattern.compile("(?<=[.!?])\\s+");
     private static final Pattern NUMERIC_PATTERN = Pattern.compile("\\d");
     private static final Set<String> STOP_WORDS = Set.of(
             "a", "an", "and", "are", "as", "at", "be", "by", "did", "do", "does", "for", "from", "had", "has",
-            "have", "how", "in", "is", "it", "its", "many", "much", "of", "on", "or", "that", "the", "their",
+            "have", "how", "in", "is", "it", "its", "of", "on", "or", "that", "the", "their",
             "there", "this", "through", "to", "was", "were", "what", "when", "where", "which", "who", "why",
             "with");
 
@@ -43,6 +44,7 @@ public class ChatService {
         this.properties = properties;
         this.qdrantService = qdrantService;
         this.assistant = assistant;
+        log.info("LLM prompt logging enabled={}", properties.getDebug().isLogLlmPrompts());
     }
 
     public ChatResponse chat(ChatRequest request) {
@@ -52,7 +54,9 @@ public class ChatService {
         log.info("Starting chat pipeline company='{}' year={} topK={} questionLength={}",
                 request.company(), request.year(), topK, request.question().length());
         long retrievalStartNanos = System.nanoTime();
-        List<QdrantPoint> points = qdrantService.search(request.question(), request.company(), request.year(), topK);
+        int candidateLimit = questionMode == QuestionMode.EXTRACTION
+                ? Math.max(topK, MIN_EXTRACTION_CANDIDATES) : topK;
+        List<QdrantPoint> points = qdrantService.search(request.question(), request.company(), request.year(), candidateLimit);
         long retrievalLatencyMs = elapsedMillis(retrievalStartNanos);
 
         if (points.isEmpty()) {
@@ -63,19 +67,31 @@ public class ChatService {
                     new ChatTelemetry(requestLatencyMs, retrievalLatencyMs, 0));
         }
 
-        List<QdrantPoint> rerankedPoints = rerankPoints(request.question(), points);
+        List<QdrantPoint> rerankedPoints = rerankPoints(request.question(), points).stream().limit(topK).toList();
         List<QdrantPoint> promptPoints = preparePromptPoints(request.question(), questionMode, rerankedPoints);
 
         String context = promptPoints.stream()
                 .map(this::formatContextBlock)
                 .collect(Collectors.joining("\n\n"));
 
-        String llmPrompt = """
+        String llmPrompt = questionMode == QuestionMode.EXTRACTION ? """
+                Answer using only the evidence below, in one short sentence.
+                Copy the requested value, unit, and qualifiers such as "nearly" exactly.
+                Do not add background or unrelated figures.
+                If the evidence does not answer the question, return exactly:
+                No relevant information found for the specified company and year.
+
+                Evidence:
+                %s
+
+                Question: %s
+                Answer:
+                """.formatted(context, request.question()) : """
                 Use only the context below to answer the user's question.
                 If the answer is not fully supported by the context, return exactly:
                 No relevant information found for the specified company and year.
                 Keep the answer concise, specific, and grounded in the strongest evidence only.
-                Prefer 2-4 short bullet points.
+                For a single numeric fact, answer in one short sentence. Otherwise, prefer 2-4 short bullet points.
                 Do not exceed 120 words unless the question explicitly asks for detail.
                 %s
 
@@ -104,7 +120,32 @@ public class ChatService {
         }
 
         long llmStartNanos = System.nanoTime();
-        String answer = assistant.chat(llmPrompt);
+        String answer = questionMode == QuestionMode.EXTRACTION
+                ? assistant.extractFact(llmPrompt) : assistant.chat(llmPrompt);
+        if (questionMode == QuestionMode.EXTRACTION && isMissingAnswer(answer)) {
+            // Small models can reject a combined context even when one passage contains the fact.
+            // Retry each selected passage separately, retaining the same retrieved evidence.
+            for (QdrantPoint point : promptPoints) {
+                String passage = stringValue(point.payload().get("text"));
+                if (passage == null || passage.isBlank()) {
+                    continue;
+                }
+                String focusedPrompt = """
+                        Answer using only this evidence, in one sentence.
+                        Evidence: %s
+                        Question: %s
+                        """.formatted(passage, request.question());
+                log.info("Retrying fact extraction with a single passage chunkId={}", point.id());
+                if (properties.getDebug().isLogLlmPrompts()) {
+                    log.info("LLM fact extraction retry prompt body:\n{}", focusedPrompt);
+                }
+                String candidate = assistant.extractFact(focusedPrompt);
+                if (!isMissingAnswer(candidate)) {
+                    answer = candidate;
+                    break;
+                }
+            }
+        }
         long llmLatencyMs = elapsedMillis(llmStartNanos);
         long requestLatencyMs = elapsedMillis(startNanos);
         log.info("LLM answer generated company='{}' year={} retrievedChunks={} contextChars={} answerChars={} requestLatencyMs={} retrievalLatencyMs={} llmLatencyMs={}",
@@ -117,7 +158,7 @@ public class ChatService {
                 retrievalLatencyMs,
                 llmLatencyMs);
 
-        List<SourceSnippet> snippets = rerankedPoints.stream()
+        List<SourceSnippet> snippets = promptPoints.stream()
                 .map(this::toSourceSnippet)
                 .toList();
 
@@ -126,6 +167,10 @@ public class ChatService {
                 snippets,
                 new ChatTelemetry(requestLatencyMs, retrievalLatencyMs, llmLatencyMs)
         );
+    }
+
+    private boolean isMissingAnswer(String answer) {
+        return answer == null || answer.isBlank() || EMPTY_RESPONSE.equalsIgnoreCase(answer.strip());
     }
 
     private String formatContextBlock(QdrantPoint point) {
@@ -218,7 +263,7 @@ public class ChatService {
     private int promptChunkLimit(QuestionMode mode, int availablePoints) {
         int defaultLimit = Math.min(properties.getRag().getMaxContextChunks(), availablePoints);
         return switch (mode) {
-            case EXTRACTION -> Math.min(1, availablePoints);
+            case EXTRACTION -> defaultLimit;
             case VERIFICATION -> Math.min(2, availablePoints);
             case COMPARISON -> Math.min(4, defaultLimit);
             case SUMMARY -> Math.min(4, defaultLimit);
@@ -330,10 +375,10 @@ public class ChatService {
         return switch (mode) {
             case EXTRACTION -> """
                     This is an extraction question.
-                    If the context contains a count, amount, percentage, date, or other exact fact that answers the question, state the exact value immediately in the first bullet or first sentence.
-                    Quote the figure exactly as it appears when possible.
-                    Do not replace an exact figure with a generic description.
-                    If the exact figure is not present, say that the context does not provide a precise value.
+                    Return only the requested fact in one short sentence, with no bullets, background, or additional facts.
+                    Copy the value, unit, and qualifiers such as "nearly" directly from the evidence that answers the question.
+                    Match what the number measures: users, countries, loan borrowings, and credit facilities are different facts.
+                    If no passage supports the requested fact, return exactly: No relevant information found for the specified company and year.
                     """;
             case COMPARISON -> """
                     This is a comparison question.

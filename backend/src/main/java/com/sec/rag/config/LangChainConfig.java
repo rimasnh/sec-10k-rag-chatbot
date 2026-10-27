@@ -20,6 +20,8 @@ public class LangChainConfig {
                 .baseUrl(properties.getOllama().getBaseUrl())
                 .modelName(properties.getOllama().getChatModel())
                 .temperature(0.1)
+                .numCtx(properties.getOllama().getContextTokens())
+                .numPredict(properties.getOllama().getMaxOutputTokens())
                 .timeout(Duration.ofSeconds(properties.getOllama().getTimeoutSeconds()))
                 .build();
     }

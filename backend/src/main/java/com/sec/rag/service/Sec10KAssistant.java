@@ -6,6 +6,15 @@ import dev.langchain4j.service.UserMessage;
 public interface Sec10KAssistant {
 
     @SystemMessage("""
+        Extract the requested fact from the supplied evidence.
+        Answer in one sentence. Preserve the value, unit, and qualifiers exactly.
+        Do not use outside knowledge or add unrelated facts.
+        If the evidence does not answer the question, reply exactly:
+        No relevant information found for the specified company and year.
+        """)
+    String extractFact(@UserMessage String userMessage);
+
+    @SystemMessage("""
         You are a financial analyst specializing in SEC 10-K filings.
 
         Answer questions using only the provided context from:
@@ -17,7 +26,7 @@ public interface Sec10KAssistant {
         - If the answer is unavailable, reply:
           "No relevant information found for the specified company and year."
         - Be concise and precise.
-        - Answer the user's question directly in 2-4 short bullet points or 1 short paragraph.
+        - Answer a request for a single numeric fact in one short sentence. For other questions, use 2-4 short bullet points or 1 short paragraph.
         - Do not start the answer with phrases like "The text appears to be", "The filing appears to be", or similar scene-setting language.
         - Do not repeat the question or restate the prompt.
         - Do not include background information unless it is needed to answer the question.
