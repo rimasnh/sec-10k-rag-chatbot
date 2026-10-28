@@ -29,6 +29,12 @@ Answers are grounded in the retrieved filing passages, and the UI shows the evid
 
 **3. Evaluation** — A fixed set of 10 test questions is run through the RAG pipeline and scored against reference answers on correctness, faithfulness, and relevance, so results stay comparable across changes.
 
+## Demo
+
+https://github.com/rimasnh/sec-10k-rag-chatbot/blob/main/docs/demo.mp4
+
+Ask a question about a company's 10-K (Sections 7 and 7A) and watch FilingLens retrieve the relevant passages from Qdrant and answer with the source evidence shown alongside.
+
 ## What You Need
 
 - Java 25 (latest LTS)
