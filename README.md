@@ -19,6 +19,16 @@ FilingLens runs on an Azure Linux VM under Docker Compose:
 
 Answers are grounded in the retrieved filing passages, and the UI shows the evidence alongside each answer.
 
+## How It Works
+
+![FilingLens RAG Workflow](docs/rag-workflow.png)
+
+**1. Data ingestion and vector indexing** — SEC 10-K Parquet files (Items 7 and 7A) are ingested by the Spring Boot backend, split into text chunks, embedded with Ollama, and stored in Qdrant.
+
+**2. RAG question-answering** — A question from the React UI goes through the Spring Boot REST API, is embedded with Ollama, and retrieves the top-K matching chunks from Qdrant. The LLM then generates an answer using only that retrieved context, and the UI shows the answer with its source evidence.
+
+**3. Evaluation** — A fixed set of 10 test questions is run through the RAG pipeline and scored against reference answers on correctness, faithfulness, and relevance, so results stay comparable across changes.
+
 ## What You Need
 
 - Java 25 (latest LTS)
