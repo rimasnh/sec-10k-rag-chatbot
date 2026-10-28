@@ -33,6 +33,8 @@ Answers are grounded in the retrieved filing passages, and the UI shows the evid
 
 <video src="https://raw.githubusercontent.com/rimasnh/sec-10k-rag-chatbot/main/docs/demo.mp4" controls width="100%"></video>
 
+[Watch the demo video](https://github.com/rimasnh/sec-10k-rag-chatbot/blob/main/docs/demo.mp4)
+
 Ask a question about a company's 10-K (Sections 7 and 7A) and watch FilingLens retrieve the relevant passages from Qdrant and answer with the source evidence shown alongside.
 
 ## What You Need
