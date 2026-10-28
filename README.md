@@ -29,6 +29,16 @@ Answers are grounded in the retrieved filing passages, and the UI shows the evid
 
 **3. Evaluation** — A fixed set of 10 test questions is run through the RAG pipeline and scored against reference answers on correctness, faithfulness, and relevance, so results stay comparable across changes.
 
+## Screenshots
+
+![Ask a question about a filing](docs/screenshot-ask.png)
+
+Pick a company and filing year, ask a question about its 10-K, and get a grounded answer with the retrieved evidence beside it.
+
+![Answers with retrieved evidence](docs/screenshot-answers.png)
+
+Each answer cites the source chunks from Qdrant, with relevance scores and the filing they came from.
+
 ## Demo
 
 <video src="https://raw.githubusercontent.com/rimasnh/sec-10k-rag-chatbot/main/docs/demo.mp4" controls width="100%"></video>
