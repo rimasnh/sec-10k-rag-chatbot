@@ -5,6 +5,20 @@ Run the FilingLens UI locally and ask questions about SEC 10-K filings from:
 - Section 7: Management's Discussion and Analysis
 - Section 7A: Quantitative and Qualitative Disclosures About Market Risk
 
+## System Architecture
+
+![FilingLens System Architecture](docs/architecture.png)
+
+FilingLens runs on an Azure Linux VM under Docker Compose:
+
+- **Frontend** — React 18 + Axios, served by Nginx (port 5173), proxying `/api` to the backend.
+- **Backend** — Java 25 / Spring Boot 3.5 with LangChain4j (port 8080). It orchestrates chat and ingestion, and talks to Ollama and Qdrant over the Compose service network.
+- **Ollama** — local LLM serving: `nomic-embed-text` for embeddings and `llama3.2:1b` for generation (port 11434).
+- **Qdrant** — vector store for chunk text and metadata, queried by cosine similarity (port 6333).
+- **Ingestion** — SEC 10-K Parquet files (Sections 7 and 7A) are loaded from Azure Blob Storage or local `./data` files via `POST /api/admin/ingest`, embedded, and upserted into Qdrant.
+
+Answers are grounded in the retrieved filing passages, and the UI shows the evidence alongside each answer.
+
 ## What You Need
 
 - Java 25 (latest LTS)
